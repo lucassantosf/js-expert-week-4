@@ -2,8 +2,9 @@ use Mix.Config
 
 # Configure your database
 config :inmana, Inmana.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: "lucas",
+  password: "123456",
+  port: "5432",
   database: "inmana_dev",
   hostname: "localhost",
   show_sensitive_data_on_connection_error: true,

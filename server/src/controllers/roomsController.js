@@ -1,7 +1,9 @@
+import Atendee from "../entities/atendee.js"
+import Room from "../entities/room.js"
 import { constants } from "../util/constants.js"
 
 export default class RoomsController {
-    #user = new Map()
+    #users = new Map()
 
     constructor() {
         this.rooms = new Map()
@@ -17,13 +19,61 @@ export default class RoomsController {
         const userId = user.id = socket.id
         const roomId = room.id
 
-        const updatedUserData = this.#updateGlobalUserData(userId, user, roomId)
-        
-        console.log({updatedUserData})
-    
-    
-    
-        socket.emit(constants.event.USER_CONNECTED, data)
+        const updatedUserData = this.#updateGlobalUserData(userId, user, roomId)        
+        const updatedRoom = this.#joinUserRoom(socket,updatedUserData,room)       
+        console.log({updatedRoom})
+        this.#notifyUsersOnRoom(socket,roomId,updatedUserData)
+        this.#replyWithActiveUsers(socket,updatedRoom.users)
+    }
+
+    #replyWithActiveUsers(socket,users){
+        const event = constants.event.LOBBY_UPDATED
+        socket.emit(event,[...users.values()])
+    }
+
+    #notifyUsersOnRoom(socket,roomId,user){
+        const event = constants.event.USER_CONNECTED
+        socket.to(roomId).emit(event,user)
+    }
+
+    #joinUserRoom(socket,user,room){
+        const roomId = room.id
+        const existingRoom = this.rooms.has(roomId)
+        const currentRoom = existingRoom ? this.rooms.get(roomId) : {}
+        const currentUser = new Atendee({
+            ...user,
+            roomId
+        })
+
+        //definir quem é o dono da sala
+        const [owner,users] = existingRoom ? 
+            [currentRoom.owner,currentRoom.users]:
+            [currentUser, new Set()]  
+
+        const updatedRoom = this.#mapRoom({
+            ...currentRoom,
+            ...room,
+            owner,
+            users: new Set([...users,...[currentUser]])
+        })
+
+        this.rooms.set(roomId,updatedRoom)
+        socket.join(roomId)
+
+        return this.rooms.get(roomId)
+    }
+
+    #mapRoom(room){
+        const users = [...room.users.values()]
+        const speakersCount = users.filter(user=>user.isSpeaker).length
+        const featuredAttendees = users.slice(0,3)
+        const mappedRoom = new Room({
+            ...room,
+            featuredAttendees,
+            speakersCount,
+            atendeesCount:room.users.size
+        })
+        return mappedRoom
     }
 
 
@@ -31,7 +81,7 @@ export default class RoomsController {
         const user = this.#users.get(userId) ?? {}
         const existingRoom = this.rooms.has(roomId)
 
-        const updatedUserData = new Attende({
+        const updatedUserData = new Atendee({
             ...user,
             ...userData,
             roomId,

@@ -27,17 +27,35 @@ export default class RoomController{
     _setupSocket(){
         return this.socketBuilder
             .setOnUserConnected(this.onUserConnected())
-            .setOnUserDisconnected(this.onUserDisconnected())
+            .setOnUserDisconnected(this.onDisconnected())
             .setOnRoomUpdated(this.onRoomUpdated())
+            .setOnUserProfileUpgrade(this.onUserProfileUpgrade())
             .build()
     } 
 
-    onRoomUpdated() {
-        return (room) => console.log('room list', room)
+    onUserProfileUpgrade() {
+        return (data) => { 
+            const attendee = new Attendee(data)
+            console.log('onUserProfileUpgrade',attendee)
+            if(attendee.isSpeaker){
+                this.view.addAttendeeOnGrid(attendee, true)
+            }
+        }
     }
 
-    onUserDisconnected() {
-        return (user) => console.log('user disconnected', user)
+    onRoomUpdated() {
+        return (room) => {
+            this.view.updateAttendeesOnGrid(room)
+            console.log('room list', room)
+        }
+    }
+
+    onDisconnected() {
+        return (data) => {
+            const attendee = new Attendee(data)
+            console.log(`${attendee.username} disconnected`)
+            this.view.removeItemFromGrid(attendee.id)
+        }
     }
 
     onUserConnected() {

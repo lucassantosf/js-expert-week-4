@@ -12,16 +12,90 @@ export default class RoomsController {
     onNewConnection(socket) {
         const { id } = socket
         console.log('connection stablished with', id)
-        this.#updateGlobalUserData(id,)
+        this.#updateGlobalUserData(id)
     }
+
+    disconnect(socket){
+        console.log('disconnect!!!',socket.id)
+        this.#logoutUser(socket)
+    }
+
+    #logoutUser(socket){
+        const userId = socket.id
+        const user = this.#users.get(userId)
+        const roomId = user.roomId
+        
+        //remover user da lista de usuarios ativos
+        this.#users.delete(userId)
+
+        //caso seja um usuario sujeira que estava em uma sala que nao mais existe
+        if(!this.rooms.has(roomId)){
+            return;
+        }
+
+        const room = this.rooms.get(roomId)
+        const toBeRemoved = [...room.users].find(({id})=>id===userId)
+        
+        //remove o usuario da sala
+        room.users.delete(toBeRemoved)
+
+        //senao tiver mais nenhum usuario na sala, a sala morre
+        if(!room.users.size){
+            this.rooms.delete(roomId)
+            return 
+        }
+
+        const disconnectedUserWasAnOwner = userId === room.owner.id
+        const onlyOneUserLeft = room.users.size === 1   
+
+        //validar se tem somente 1 usuario ou se o usuario era o dono da sala
+        if(onlyOneUserLeft || disconnectedUserWasAnOwner){
+            room.owner = this.#getNewRoomOwner(room,socket)
+        }
+
+        //atualiza a room no final
+        this.rooms.set(roomId,room)
+
+        //notifica a sala que o usuario se desconectou
+        socket.to(roomId).emit(constants.event.USER_DISCONNECTED, user)
+    }
+
+    #notifyUserProfileUpgrade(socket,roomId,user){
+        socket.to(roomId).emit(constants.event.UPGRADE_USER_PERMISSION,user)
+    }
+
+    #getNewRoomOwner(room,socket){
+        const users = [...room.users.values()]
+        const activeSpeakers = users.find(user=>user.isSpeaker)
+        //se quem desconectou era o dono, passa a lideranca para o proximo
+        //senao houvers speakers, ele pega o attendee mais antigo (primeira posicao)
+        const [newOwner] = activeSpeakers ? [activeSpeakers] : users
+        newOwner.isSpeaker = true
+
+        const outdatedUser = this.#users.get(newOwner.id)
+        const updatedUser = new Attendee({
+            ...outdatedUser,
+            ...newOwner,
+        })
+
+        this.#users.set(newOwner.id,updatedUser)
+
+        this.#notifyUserProfileUpgrade(socket,room.id,newOwner)
+
+        return newOwner
+    }
+
 
     joinRoom(socket, { user, room }) {
         const userId = user.id = socket.id
         const roomId = room.id
 
-        const updatedUserData = this.#updateGlobalUserData(userId, user, roomId)        
+        const updatedUserData = this.#updateGlobalUserData(
+            userId, 
+            user, 
+            roomId
+        )        
         const updatedRoom = this.#joinUserRoom(socket,updatedUserData,room)       
-        console.log({updatedRoom})
         this.#notifyUsersOnRoom(socket,roomId,updatedUserData)
         this.#replyWithActiveUsers(socket,updatedRoom.users)
     }

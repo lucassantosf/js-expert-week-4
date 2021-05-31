@@ -1,50 +1,50 @@
-import { constants } from './constants.js'
 import http from 'http'
 import { Server } from 'socket.io'
+import { constants } from './constants.js'
 
-export default class SocketServer{
+export default class SocketServer {
     #io
-
-    constructor({port}){
+    constructor({ port }) {
         this.port = port
         this.namespaces = {}
-    }
+    } 
 
-    attachEvents({routeConfig}){
-        for(const routes of routeConfig){
-            for(const [namespace,{events,eventEmitter}] of Object.entries(routes)){
+    attachEvents({ routeConfig }) {
+        for (const routes of routeConfig) {
+            for (const [namespace, { events, eventEmitter }] of Object.entries(routes)) {
                 const route = this.namespaces[namespace] = this.#io.of(`/${namespace}`)
                 route.on('connection', socket => {
-                    for(const [functionName,functionValue] of events){
-                        socket.on(functionName,(...args) => functionValue(socket,...args)) 
+                    for (const [functionName, functionValue] of events) {
+                        socket.on(functionName, (...args) => functionValue(socket, ...args))
                     }
 
-                    eventEmitter.emit(constants.event.USER_CONNECTED,socket)
+                    eventEmitter.emit(constants.event.USER_CONNECTED, socket)
                 })
             }
         }
     }
 
-    async start(){
-        const server = http.createServer((request,response)=>{
-            response.writeHead(200,{
-                'Access-Control-Allow-Origin':'*',
+    async start() {
+        const server = http.createServer((request, response) => {
+            response.writeHead(200, {
+                'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
             })
 
-            response.end('hey there')
-        }) 
-        
-        this.#io = new Server(server, {
-            cors:{
-                origin: '*',
-                credentials: false,
-            }
-        }) 
+            response.end('hey there!!')
+        })
 
-        return new Promise((resolve,reject)=>{
-            server.on('error',reject)
-            server.listen(this.port,()=>resolve(server))
+        this.#io = new Server(server, {
+            cors: {
+                origin: '*',
+                credentials: false
+            }
+        })
+ 
+        return new Promise((resolve, reject) => {
+            server.on('error', reject)
+
+            server.listen(this.port, () => resolve(server))
         })
     }
 }

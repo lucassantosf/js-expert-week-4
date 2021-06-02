@@ -1,6 +1,8 @@
 import { constants } from "../../_shared/constants.js"
+import Media from "../../_shared/media.js"
 import PeerBuilder from "../../_shared/peerBuilder.js"
 import RoomController from "./controller.js"
+import RoomService from "./service.js"
 import RoomSocketBuilder from "./util/roomSocket.js"
 import View from "./view.js"
 
@@ -25,11 +27,16 @@ const socketBuilder = new RoomSocketBuilder({
     namespace: constants.socketNamespaces.room
 })
 
+const roomService = new RoomService({
+    media: Media
+}) 
+
 const dependencies = {
     view: View,
     socketBuilder,
     roomInfo,
-    peerBuilder
+    peerBuilder,
+    roomService
 }
 
 await RoomController.initialize(dependencies)

@@ -2,12 +2,13 @@ import { constants } from "../../_shared/constants.js"
 import Attendee from "./entities/attendee.js"
 
 export default class RoomController {
-    constructor({ roomInfo, socketBuilder, view, peerBuilder }) {
+    constructor({ roomInfo, socketBuilder, view, peerBuilder, roomService }) {
         this.socketBuilder = socketBuilder
         this.peerBuilder = peerBuilder
         this.roomInfo = roomInfo
         this.view = view
-        
+        this.roomService = roomService
+
         this.socket = {}
     }
     static async initialize(deps) {
@@ -15,12 +16,11 @@ export default class RoomController {
     }
 
     async _initialize() {
-        this._setupViewEvents() 
+        this._setupViewEvents()
+        this.roomService.init()
 
-        this.socket = this._setupSocket() 
-        this.peer = await this._setupWebRTC()
-
-        this.socket.emit(constants.events.JOIN_ROOM, this.roomInfo)
+        this.socket = this._setupSocket()
+        this.roomService.setCurrentPeer(await this._setupWebRTC())
     }
 
     _setupViewEvents() {
@@ -37,39 +37,78 @@ export default class RoomController {
             .build()
     }
 
-    async _setupWebRTC(){
+    async _setupWebRTC() {
         return this.peerBuilder
             .setOnError(this.onPeerError())
             .setOnConnectionOpened(this.onPeerConnectionOpened())
+            .setOnCallReceveid(this.onCallReceveid())
+            .setOnCallError(this.onCallError())
+            .setOnCallClose(this.onCallClose())
+            .setOnStreamReceveid(this.onStreamReceveid())
             .build()
+    }
+
+    onStreamReceveid() {
+        return (call, stream) => {
+            console.log('onStreamReceveid', call, stream)
+        }
+    }
+
+    onCallClose() {
+        return () => {
+            console.log('onCallClose', call) 
+        }
+    }
+
+    onCallError() {
+        return (call, error) => {
+            console.log('onCallError', call, stream) 
+        }
+    }
+
+    onCallReceveid() {
+        return (call) => {
+            console.log('onCallReceveid', call) 
+        }
     }
 
     onPeerError() {
         return (error) => {
-            console.log('error peer',error)
+            console.log('error peer', error)
         }
     }
 
+    //quando a conexao for aberta, ele pede para entrar na sala do socket
     onPeerConnectionOpened() {
         return (peer) => {
-            console.log('peeeeeer',peer)
+            console.log('peeeeeer', peer)
+            this.roomInfo.user.peerId = peer.id
+            this.socket.emit(constants.events.JOIN_ROOM, this.roomInfo)
         }
     }
 
     onUserProfileUgrade() {
         return (data) => {
             const attendee = new Attendee(data)
+
             console.log('onUserProfileUgrade', attendee)
-            if(attendee.isSpeaker) {
+            this.roomService.upgradeUserPermission(attendee)
+
+            if (attendee.isSpeaker) {
                 this.view.addAttendeeOnGrid(attendee, true)
             }
-         }
+            this.activateUserFeatures()
+        }
     }
 
     onRoomUpdated() {
-        return (room) => {
-            this.view.updateAttendeesOnGrid(room)
-            console.log('room list!', room)
+        return (data) => {
+            const users = data.map(item => new Attendee(item))
+            console.log('room list!', users)
+
+            this.view.updateAttendeesOnGrid(users)
+            this.roomService.updateCurrentUserProfile(users)
+            this.activateUserFeatures()
         }
     }
 
@@ -83,10 +122,17 @@ export default class RoomController {
     }
 
     onUserConnected() {
-        return (data) => { 
+        return (data) => {
             const attendee = new Attendee(data)
             console.log('user connected!', attendee)
             this.view.addAttendeeOnGrid(attendee)
+            //vamos ligar!!
+            this.roomService.callNewUser(attendee)
         }
+    }
+
+    activateUserFeatures() {
+        const currentUser = this.roomService.getCurrentUser()
+        this.view.showUserFeatures(currentUser.isSpeaker)
     }
 }

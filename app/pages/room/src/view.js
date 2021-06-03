@@ -56,20 +56,42 @@ export default class View {
 
     }
 
-    static showUserFeatures(isSpeaker){
-        //attendee
-        if(!isSpeaker){
+    static _createAudioElement({ muted = true, srcObject }) {
+        const audio = document.createElement('audio')
+        audio.muted = muted
+        audio.srcObject = srcObject
+
+        audio.addEventListener('loadedmetadata', async () => {
+            try {
+                await audio.play()
+            } catch (error) {
+                console.error('erro to play', error)
+            }
+        })
+
+    }
+
+
+
+    static renderAudioElement({ callerId, stream, isCurrentId }) {
+        View._createAudioElement({
+            muted: isCurrentId,
+            srcObject: stream
+        })
+
+    }
+    static showUserFeatures(isSpeaker) {
+
+        // attendee
+        if (!isSpeaker) {
             btnClap.classList.remove('hidden')
             btnMicrophone.classList.add('hidden')
             btnClipBoard.classList.add('hidden')
             return;
         }
-
-        //speaker        
+        // speaker
         btnClap.classList.add('hidden')
         btnMicrophone.classList.remove('hidden')
         btnClipBoard.classList.remove('hidden')
     }
-
-
 }

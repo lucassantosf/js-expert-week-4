@@ -11,6 +11,7 @@ export default class RoomController {
 
         this.socket = {}
     }
+
     static async initialize(deps) {
         return new RoomController(deps)._initialize()
     }
@@ -36,52 +37,65 @@ export default class RoomController {
             .setOnUserProfileUpgrade(this.onUserProfileUgrade())
             .build()
     }
-
     async _setupWebRTC() {
         return this.peerBuilder
             .setOnError(this.onPeerError())
             .setOnConnectionOpened(this.onPeerConnectionOpened())
-            .setOnCallReceveid(this.onCallReceveid())
+            .setOnCallReceived(this.onCallReceived())
             .setOnCallError(this.onCallError())
             .setOnCallClose(this.onCallClose())
-            .setOnStreamReceveid(this.onStreamReceveid())
+            .setOnStreamReceived(this.onStreamReceived())
             .build()
     }
 
-    onStreamReceveid() {
+    onStreamReceived() {
         return (call, stream) => {
-            console.log('onStreamReceveid', call, stream)
+            const callerId = call.peer
+            console.log('onStreamReceived', call, stream)
+            const { isCurrentId } = this.roomService.addReceivedPeer(call)
+            this.view.renderAudioElement({
+                callerId,
+                stream,
+                isCurrentId
+            })
         }
     }
 
     onCallClose() {
-        return () => {
-            console.log('onCallClose', call) 
+        return (call) => {
+            console.log('onCallClose', call)
+            const peerId = call.peer
+            this.roomService.disconnectPeer({ peerId })
+
         }
     }
 
     onCallError() {
         return (call, error) => {
-            console.log('onCallError', call, stream) 
+            console.log('onCallError', call, error)
+            const peerId = call.peer
+            this.roomService.disconnectPeer({ peerId })
+
         }
     }
 
-    onCallReceveid() {
-        return (call) => {
-            console.log('onCallReceveid', call) 
+    onCallReceived() {
+        return async (call) => {
+            const stream = await this.roomService.getCurrentStream()
+            console.log('answering call', call)
+            call.answer(stream)
         }
     }
 
     onPeerError() {
         return (error) => {
-            console.log('error peer', error)
+            console.error('deu ruim', error)
         }
     }
-
-    //quando a conexao for aberta, ele pede para entrar na sala do socket
+    // quando a conexao for aberta ele pede para entrar na sala do socket
     onPeerConnectionOpened() {
         return (peer) => {
-            console.log('peeeeeer', peer)
+            console.log('peeeeer', peer)
             this.roomInfo.user.peerId = peer.id
             this.socket.emit(constants.events.JOIN_ROOM, this.roomInfo)
         }
@@ -90,13 +104,13 @@ export default class RoomController {
     onUserProfileUgrade() {
         return (data) => {
             const attendee = new Attendee(data)
-
             console.log('onUserProfileUgrade', attendee)
             this.roomService.upgradeUserPermission(attendee)
 
             if (attendee.isSpeaker) {
                 this.view.addAttendeeOnGrid(attendee, true)
             }
+
             this.activateUserFeatures()
         }
     }
@@ -109,6 +123,7 @@ export default class RoomController {
             this.view.updateAttendeesOnGrid(users)
             this.roomService.updateCurrentUserProfile(users)
             this.activateUserFeatures()
+
         }
     }
 
@@ -118,6 +133,8 @@ export default class RoomController {
 
             console.log(`${attendee.username} disconnected!`)
             this.view.removeItemFromGrid(attendee.id)
+
+            this.roomService.disconnectPeer(attendee)
         }
     }
 
@@ -126,7 +143,8 @@ export default class RoomController {
             const attendee = new Attendee(data)
             console.log('user connected!', attendee)
             this.view.addAttendeeOnGrid(attendee)
-            //vamos ligar!!
+
+            // vamos ligar!!
             this.roomService.callNewUser(attendee)
         }
     }

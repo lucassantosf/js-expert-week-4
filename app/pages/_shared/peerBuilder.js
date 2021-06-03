@@ -1,15 +1,17 @@
-class PeerCustomModule extends globalThis.Peer{
-    constructor({config,onCall}){
+class PeerCustomModule extends globalThis.Peer {
+    constructor({ config, onCall }) {
         super(config)
+
         this.onCall = onCall
     }
 
-    call(...args){
+    call(...args) {
         const originalCallResult = super.call(...args)
         this.onCall(originalCallResult)
         return originalCallResult
     }
 }
+
 
 export default class PeerBuilder {
     constructor({ peerConfig }) {
@@ -18,8 +20,8 @@ export default class PeerBuilder {
         this.onConnectionOpened = () => { }
         this.onCallError = () => { }
         this.onCallClose = () => { }
-        this.onCallReceveid = () => { }
-        this.onStreamReceveid = () => { }
+        this.onCallReceived = () => { }
+        this.onStreamReceived = () => { }
     }
 
     setOnError(fn) {
@@ -36,47 +38,52 @@ export default class PeerBuilder {
 
     setOnCallError(fn) {
         this.onCallError = fn
-        return this 
+
+        return this
     }
 
     setOnCallClose(fn) {
         this.onCallClose = fn
+
         return this
     }
 
-    setOnCallReceveid(fn) {
-        this.onCallReceveid = fn
+    setOnCallReceived(fn) {
+        this.onCallReceived = fn
+
         return this
     }
 
-    setOnStreamReceveid(fn) {
-        this.onStreamReceveid = fn
+    setOnStreamReceived(fn) {
+        this.onStreamReceived = fn
+
         return this
     }
+    _prepareCallEvent(call) {
+        call.on('stream', (stream) => this.onStreamReceived(call, stream))
+        call.on('error', (error) => this.onCallError(call, error))
+        call.on('close', () => this.onCallClose(call))
 
-    _prepareCallEvent(call){
-        call.on('stream',(stream)=>this.onCallReceveid(call,stream))
-        call.on('error',(error)=>this.onCallError(call,error))
-        call.on('close',()=>this.onCallClose(call))
-
-        this.onCallReceveid(call)
+        this.onCallReceived(call)
     }
 
-    build() {
+    async build() {
+        // o peer recebe uma lista de argumentos,
+        // new Peer(id, config1, config2)
+        // params = [], new Peer(...paramsc)
+
         // const peer = new globalThis.Peer(...this.peerConfig)
         const peer = new PeerCustomModule({
             config: [...this.peerConfig],
             onCall: this._prepareCallEvent.bind(this)
         })
-
-        peer.on('error', this.onError) 
-        peer.on('call', this._prepareCallEvent.bind(this)) 
+        peer.on('error', this.onError)
+        peer.on('call', this._prepareCallEvent.bind(this))
 
         return new Promise((resolve) => peer.on('open', () => {
             this.onConnectionOpened(peer)
             return resolve(peer)
         }))
-
-
     }
+
 }

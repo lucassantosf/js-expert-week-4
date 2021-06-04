@@ -5,8 +5,9 @@ import View from "./view.js";
 
 const user = {
     img: 'https://cdn4.iconfinder.com/data/icons/avatars-xmas-giveaway/128/bear_russian_animal_avatar-256.png',
-    username: 'Lucas ' + Date.now()
-} 
+    username: 'Erick ' + Date.now()
+}
+
 
 const socketBuilder = new LobbySocketBuilder({
     socketUrl: constants.socketUrl,
@@ -18,4 +19,7 @@ const dependencies = {
     user,
     view: View
 } 
-await LobbyController.initialize(dependencies)
+LobbyController.initialize(dependencies)
+.catch(error => {
+    alert(error.message)
+})

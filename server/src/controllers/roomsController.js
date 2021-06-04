@@ -7,22 +7,53 @@ export default class RoomsController {
     #users = new Map()
 
     constructor({roomsPubSub}) {
+        
         this.roomsPubSub = roomsPubSub
         this.rooms = new CustomMap({
             observer: this.#roomObserver(),
             customMapper: this.#mapRoom.bind(this)
         })
     }
-
-    #roomObserver(){
+    #roomObserver() {
         return {
-            notify: (rooms)=>this.notifyRoomSubscribers(rooms)
+            notify: (rooms) => this.notifyRoomSubscribers(rooms)
         }
     }
 
-    notifyRoomSubscribers(rooms){
+    speakAnswer(socket, { answer, user }) {
+        const userId = user.id
+        const currentUser = this.#users.get(userId)
+        const updatedUser = new Attendee({
+            ...currentUser,
+            isSpeaker: answer
+        })
+        this.#users.set(userId, updatedUser)
+
+        const roomId = user.roomId
+        const room = this.rooms.get(roomId)
+        const userOnRoom = [...room.users.values()].find(({ id }) => id === userId)
+        room.users.delete(userOnRoom)
+        room.users.add(updatedUser)
+        this.rooms.set(roomId, room)
+
+        // volta para ele mesmo
+        socket.emit(constants.event.UPGRADE_USER_PERMISSION, updatedUser)
+        // notifica a sala inteira para ligar para esse novo speaker
+        this.#notifyUserProfileUpgrade(socket, roomId, updatedUser)
+
+    }
+
+    speakRequest(socket) {
+        const userId = socket.id
+        const user = this.#users.get(userId)
+        const roomId = user.roomId
+        const owner = this.rooms.get(roomId)?.owner
+        socket.to(owner.id).emit(constants.event.SPEAK_REQUEST, user)
+    }
+
+    notifyRoomSubscribers(rooms) {
         const event = constants.event.LOBBY_UPDATED
-        this.roomsPubSub.emit(event,[...rooms.values()])
+        this.roomsPubSub.emit(event, [...rooms.values()])
     }
 
     onNewConnection(socket) {
@@ -190,14 +221,6 @@ export default class RoomsController {
             .filter(fn => fn !== 'constructor')
             .map(name => [name, this[name].bind(this)])
 
-        return new Map(functions)
-
-        /*
-            [
-                ['onNewConnection', this.onNewConnection],
-                ['disconnect', this.disconnect],
-            ]
-        */
-
+        return new Map(functions) 
     }
 }

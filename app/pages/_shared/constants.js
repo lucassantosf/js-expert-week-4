@@ -26,5 +26,15 @@ export const constants = {
 
         SPEAK_REQUEST: 'speakRequest',
         SPEAK_ANSWER: 'speakAnswer'
-    }
+    },
+    firebaseConfig : {
+        apiKey: "AIzaSyB7g71XkS8xzm7oinCOe60zZc34gGsf6vA",
+        authDomain: "semanajs-expert-bd5e0.firebaseapp.com",
+        projectId: "semanajs-expert-bd5e0",
+        storageBucket: "semanajs-expert-bd5e0.appspot.com",
+        messagingSenderId: "89181631699",
+        appId: "1:89181631699:web:2d875aed57bbf7e9311026",
+        measurementId: "G-HT8KS42PCB"
+    },
+    storageKey: "jsexpert:storage:user"
 }

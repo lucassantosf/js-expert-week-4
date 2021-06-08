@@ -1,0 +1,41 @@
+Commands to deploy on Heroku
+
+// Server 
+
+cd server
+heroku login
+git init
+git add .
+git commit -m 'message'
+heroku apps:create lf-socket-server
+git push heroku master
+heroku logs -t
+
+// PeerJs Server 
+
+mkdir peerjs-server
+cd peerjs-server
+npm init -y
+npm i peer@0.6.1
+git init 
+git add .
+git commit -m 'message'
+heroku apps:create lf-peerjs-server
+git push heroku master
+
+// App frontend 
+
+no package.json, change: 
+    "start": "npx http-server --cors -p $PORT ."
+cd app
+git init
+git add .
+git commit -m 'v1'
+heroku apps:create lf-clubhouse
+git push heroku master
+
+// Delete each project
+cd /app and cd /server and cd /peerjs-server
+
+heroku apps:delete
+rm -rf .git

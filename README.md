@@ -1,8 +1,51 @@
 # ClubHouse Clone Template - Semana JS Expert 4.0
 
-Seja bem vindo(a) à quarta Semana Javascript Expert.Este é o código inicial para iniciar nossa jornada.
+Este repositório contém os arquivos desenvolvidos durante a semana JS Expert 4, do professor [ErickWendel](https://erickwendel.teachable.com/) 
 
-Marque esse projeto com uma estrela 🌟
+O projeto é um clone do App ClubHouse, uma aplicação para conversas de áudio entre usuarios. Foram utilizados os conceitos de #websocket , #peerjs e #webRTC.
+ 
+Seguem as orientações para executar a aplicação localmente:
+
+## Requisitos de ambiente
+
+-Node 14^
+
+-Npm
+
+## Como executar:
+
+Clone este repositório, navegue para a pasta do projeto e execute em dois terminais de linha de comando:
+
+No terminal 1:
+
+- cd server (entrar na pasta do servidor local)
+
+- npm install (instalar as dependências)
+
+- npm run start  
+
+No terminal 2: (com o server em execução através do terminal 1), execute:
+
+- cd app (entrar na pasta do app front)
+
+- npm install (instalar as dependências)
+
+- npm run start   
+
+![screenshot](assets/terminal.PNG)
+
+
+## Orientações
+
+Você deve acessar primeiro a página de login e fazer a autenticação através do Github, e com isso, você será 
+
+redirecionado para a página de lobbys (listagem de todas as salas existentes de conversas).
+
+Você pode acessar uma existente ou criar uma nova.
+
+Ao entrar em alguma sala, você pode duplicar a sua guia e simular o acesso de outro usuário.
+
+
 
 ## Preview
 
@@ -20,7 +63,7 @@ Marque esse projeto com uma estrela 🌟
 
 ## Checklist Features
 
-- [ ] O app deve funcionar na Web, Android e IOS
+- [x] O app deve funcionar na Web, Android e IOS
 - Login
   - [x] Deve ter login com GitHub
     - [x] Se houver dados do usuario em localStorage deve ir para lobby direto

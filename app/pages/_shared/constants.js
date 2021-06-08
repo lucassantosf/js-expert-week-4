@@ -1,16 +1,20 @@
 export const constants = {
     socketUrl: 'http://localhost:3000',
+    // socketUrl: 'https://lf-socket-server.herokuapp.com/', 
     socketNamespaces: {
         room: 'room',
         lobby: 'lobby'
     },
     peerConfig: Object.values({
         id: undefined,
-        // config: {
-        //     port: 9000,
-        //     host: 'localhost',
-        //     path: '/'
-        // }
+        config: { 
+            // host: 'lf-peerjs-server.herokuapp.com',
+            // secure: true,
+            // path: '/'
+            // port: 9000,
+            // host: 'localhost',
+            // path: '/'
+        }
     }),
     pages: {
         lobby: '/pages/lobby',
